@@ -1,0 +1,50 @@
+# This is a configuration file for DEVELOPMENT which overrides
+# `docker-compose.yml`
+
+# See `docker-compose.yml` for more information.
+
+version: "2"
+services:
+  web:
+    restart: always
+
+    # Expose the flask debug server port
+    ports:
+      - "8000:8000"
+
+    # Let the application's Dockerfile speak for itself
+    build: ./api
+
+    # Expose our directories as volumes to the services.
+    volumes:
+      - ./api:/api
+      - ./static:/static
+
+    # Read configuration information from an environment file.
+    env_file: ./env/env_file
+
+    # Specific overrides that should be set regardless.
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_DEBUG=1
+
+    # Same as `docker-compose.yml`
+    depends_on:
+      - postgres
+      - redis
+
+    # Same as `docker-compose.yml`
+    networks:
+      - web_nw
+      - db_nw
+
+    # Don't bother with gunicorn. Use the flask debug server.
+    command: flask run --host=0.0.0.0 --port 8000
+
+volumes:
+  dispal-data:
+networks:
+  web_nw:
+    driver: bridge
+  db_nw:
+    driver: bridge

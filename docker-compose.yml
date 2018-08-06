@@ -1,0 +1,111 @@
+# This is the main Docker configuration file. Hopefully the comments can clear
+# up any confusion.
+
+version: "2"
+services:
+  # configuration for the application we are developing
+  web:
+    restart: always
+
+    # Our application's needs are specified in ./api/Dockerfile
+    build: ./api
+
+    # Expose these two directories to our virtual Docker container
+    volumes:
+      - ./api:/api
+      - ./static:/static
+
+    # read configuration values from a file not in git
+    env_file: ./env/env_file
+
+    # these are other services defined in this file
+    depends_on:
+      - postgres
+      - redis
+
+    # our application straddles two different virtual networks
+    networks:
+      - web_nw
+      - db_nw
+
+    # run our app with this command
+    command: /usr/local/bin/gunicorn -w 2 -b :8000 app:app
+
+  # In general it is not recommended that you serve static files using flask's
+  # builtin server in production. On top of that, if we want to design this app
+  # such that the backend API is divorced entirely from the frontend, this gives
+  # us the means of doing that.
+  #
+  # tl;dr I promise this is best practice and hey look I already did it for
+  # us. - gcj
+  nginx:
+    image: "nginx:1.13.5"
+
+    # nginx says it serves port 80; I beg to differ
+    ports:
+      - "8080:80"
+
+    # We can put specific configuration files in env/conf.d change them without
+    # having to rebuild the docker file.
+    volumes:
+      - ./env/conf.d:/etc/nginx/conf.d
+
+    # Grant access to all the volumes that our application exposes (eg, /app and
+    # /static).
+    volumes_from:
+      - web
+
+    # If the API isn't up, well, yeah
+    depends_on:
+      - web
+
+    # If it falls over, pick it up again.
+    restart: always
+
+    # This has access to the not-database network. Nice try h4x0rs.
+    networks:
+      - web_nw
+
+  # This is a relatively recent postgres image which includes the PostGIS
+  # extension.
+  postgres:
+    restart: always
+    image: kartoza/postgis:9.6-2.4
+
+    # INSIDE the container: port 5432
+    # But if you want to inspect it from OUTSIDE: 5433
+    ports:
+      - "5433:5432"
+
+    # As with our application, let's leave runtime-specific configuration to the
+    # professionals.
+    env_file: ./env/env_file
+
+    # Hey look we can persist data across executions!
+    volumes:
+      - dispal-data:/var/lib/postgresql/data
+
+    # DB and web server don't talk and never the twain shall meet.
+    networks:
+      - db_nw
+
+  # redis is just nice to have as a cache and temporary data structure
+  # as-a-service.
+  redis:
+    image: redis
+    restart: always
+    networks:
+      - db_nw
+
+# Let's define the postgres volume (with no particular opinions on how it's
+# configured)
+volumes:
+  dispal-data:
+
+# Let's create some virtual networks that we can bridge to the outside world if
+# need be.
+networks:
+  web_nw:
+    driver: bridge
+  db_nw:
+    driver: bridge
