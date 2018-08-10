@@ -10,7 +10,7 @@ services:
 
     # Expose the flask debug server port
     ports:
-      - "8000:8000"
+      - "5000:5000"
 
     # Let the application's Dockerfile speak for itself
     build: ./api
@@ -23,10 +23,13 @@ services:
     # Read configuration information from an environment file.
     env_file: ./env/env_file
 
+    working_dir: /
+
     # Specific overrides that should be set regardless.
     environment:
-      - FLASK_APP=app.py
+      - FLASK_APP=api
       - FLASK_DEBUG=1
+      - FLASK_ENV=development
 
     # Same as `docker-compose.yml`
     depends_on:
@@ -39,10 +42,12 @@ services:
       - db_nw
 
     # Don't bother with gunicorn. Use the flask debug server.
-    command: flask run --host=0.0.0.0 --port 8000
+    command: flask run --host=0.0.0.0 --port 5000
 
-volumes:
-  dispal-data:
+  postgres:
+    environment:
+      - ALLOW_IP_RANGE=0.0.0.0/0
+
 networks:
   web_nw:
     driver: bridge

@@ -10,7 +10,7 @@ WORKDIR /api
 
 # copy over the requirements file first
 COPY ./requirements.txt /api/requirements.txt
-WORKDIR /api
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Now copy our source code

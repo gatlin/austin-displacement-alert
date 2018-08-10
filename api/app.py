@@ -1,16 +1,17 @@
 import os
 from flask import Flask
 from redis import Redis
-import psycopg2
+from flask_restful import Api
 
-app = Flask(__name__)
+from . import db
+from .resources import HelloResource
 
-redis = Redis(host='redis', port=6379)
+def create_app(test_config=None):
+    app = Flask(__name__)
+    api = Api(app)
 
-@app.route('/api')
-def hello():
-    redis.incr('hits')
-    return '%s' % os.environ
+    with app.app_context():
+        db.init_app(app)
+        api.add_resource(HelloResource, '/')
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
+    return app

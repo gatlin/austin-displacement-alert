@@ -29,7 +29,7 @@ services:
       - db_nw
 
     # run our app with this command
-    command: /usr/local/bin/gunicorn -w 2 -b :8000 app:app
+    command: /usr/local/bin/gunicorn -w 2 -b :5000 api:app
 
   # In general it is not recommended that you serve static files using flask's
   # builtin server in production. On top of that, if we want to design this app
@@ -69,8 +69,9 @@ services:
   # This is a relatively recent postgres image which includes the PostGIS
   # extension.
   postgres:
-    restart: always
+    restart: unless-stopped
     image: kartoza/postgis:9.6-2.4
+    #image: postgres
 
     # INSIDE the container: port 5432
     # But if you want to inspect it from OUTSIDE: 5433
@@ -101,6 +102,7 @@ services:
 # configured)
 volumes:
   dispal-data:
+  env:
 
 # Let's create some virtual networks that we can bridge to the outside world if
 # need be.
